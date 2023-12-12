@@ -225,6 +225,41 @@ class TestNN(mlx_tests.MLXTestCase):
         var = y.reshape(2, -1, 2, 4).var(axis=(1, -1))
         self.assertTrue(np.allclose(means, 3 * np.ones_like(means), atol=1e-6))
         self.assertTrue(np.allclose(var, 4 * np.ones_like(var), atol=1e-6))
+        
+    def test_batch_norm1d(self):
+        x = mx.arange(100, dtype=mx.float32)
+        x = x.reshape(1, 10, 10, 1)
+        x = mx.broadcast_to(x, (2, 10, 10, 4))
+        x = mx.concatenate([x, 0.5 * x], axis=-1)
+
+        # Batch norm in channels last mode
+        b = nn.BatchNorm1d(8)
+        y = b(x)
+        means = y.reshape(2, -1, 2).mean(axis=1)
+        var = y.reshape(2, -1, 2).var(axis=1)
+        self.assertTrue(np.allclose(means, np.zeros_like(means), atol=1e-6))
+        self.assertTrue(np.allclose(var, np.ones_like(var), atol=1e-6))
+        b.weight = b.weight * 2
+        b.bias = b.bias + 3
+        y = b(x)
+        means = y.reshape(2, -1, 2).mean(axis=1)
+        var = y.reshape(2, -1, 2).var(axis=1)
+        self.assertTrue(np.allclose(means, 3 * np.ones_like(means), atol=1e-6))
+        self.assertTrue(np.allclose(var, 4 * np.ones_like(var), atol=1e-6))
+
+        # Batch norm in channels first mode
+        b = nn.BatchNorm1d(8, pytorch_compatible=True)
+        y = b(x)
+        means = y.reshape(2, -1, 2, 4).mean(axis=(1, -1))
+        var = y.reshape(2, -1, 2, 4).var(axis=(1, -1))
+        self.assertTrue(np.allclose(means, np.zeros_like(means), atol=1e-6))
+        self.assertTrue(np.allclose(var, np.ones_like(var), atol=1e-6))
+        b.weight = b.weight * 2
+        b.bias = b.bias + 3
+        y = b(x)
+        means = y.reshape(2, -1, 2, 4).mean(axis=(1, -1))
+        var = y.reshape(2, -1, 2, 4).var(axis=(1, -1))
+        self.assertTrue(np.allclose(means, 3 * np.ones_like(means), atol=1e-6))
 
     def test_conv1d(self):
         N = 5
